@@ -13,7 +13,6 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
 // 测试路由
 app.post('/chat', async (req, res) => {
   // 设置SSE必要的响应头
@@ -24,20 +23,20 @@ app.post('/chat', async (req, res) => {
 
   try {
     const deepseek = createDeepSeek({
-      baseURL: process.env.DEEPSEEK_BASE_URL,
-      apiKey: process.env.DEEPSEEK_API_KEY,
+      baseURL: process.env.DEEPSEEK_BASE_URL || '',
+      apiKey: process.env.DEEPSEEK_API_KEY || '',
     });
     const result = streamText({
-      model: deepseek('deepseek-ai/DeepSeek-R1'),
+      model: deepseek(process.env.DEEPSEEK_MODEL || ''),
       system: 'you are a helpful assistant',
-      messages: [ 
+      messages: [
         {
           role: 'user',
-          content: req.body.message || '你好',  // 从请求体获取用户消息
+          content: req.body.message || '你好', // 从请求体获取用户消息
         },
       ],
     });
-  
+
     let enteredReasoning = false;
     let enteredText = false;
     for await (const part of result.fullStream) {
@@ -45,27 +44,33 @@ app.post('/chat', async (req, res) => {
         if (!enteredReasoning) {
           enteredReasoning = true;
         }
-        res.write(`${JSON.stringify({
-          type: 'reasoning',
-          content: part.textDelta
-        })}\n`);
+        res.write(
+          `${JSON.stringify({
+            type: 'reasoning',
+            content: part.textDelta,
+          })}\n`
+        );
       } else if (part.type === 'text-delta') {
         if (!enteredText) {
           enteredText = true;
         }
-        res.write(`${JSON.stringify({
-          type: 'text-delta',
-          content: part.textDelta
-        })}\n`);
+        res.write(
+          `${JSON.stringify({
+            type: 'text-delta',
+            content: part.textDelta,
+          })}\n`
+        );
       }
     }
     res.end();
   } catch (error) {
     console.error('Stream error:', error);
-    res.write(JSON.stringify({
-      type: 'error',
-      content: 'Stream error occurred'
-    }));
+    res.write(
+      JSON.stringify({
+        type: 'error',
+        content: 'Stream error occurred',
+      })
+    );
     res.end();
   }
 });

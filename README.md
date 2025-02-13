@@ -2,6 +2,8 @@
 
 # AI 助手对话应用
 
+![](https://static.iiter.cn/article/9caac4214d11796eebb16e7ddd4bf2a2.png)
+
 基于 Express + DeepSeek_R1 的智能对话应用，支持流式响应和思维链展示
 
 ## 功能特性
@@ -49,13 +51,13 @@ npm run dev
 
 ## 项目结构
 
-项目结构
-├── src/
-│ └── index.ts # 后端主入口文件
-├── public/
-│ └── index.html # 前端界面
-├── package.json
-└── .env.example # 环境变量示例
+项目结构  
+├── src/  
+│ └── index.ts # 后端主入口文件  
+├── public/  
+│ └── index.html # 前端界面  
+├── package.json  
+└── .env.example # 环境变量示例  
 
 
 ## 技术栈
@@ -68,6 +70,7 @@ npm run dev
 环境变量配置项：
 - `DEEPSEEK_API_KEY`: DeepSeek API 密钥
 - `DEEPSEEK_BASE_URL`: DeepSeek API 基础 URL
+- `DEEPSEEK_MODEL`: DeepSeek 模型名称
 
 ## 核心功能
 - 实时对话：基于 SSE 实现流式响应
