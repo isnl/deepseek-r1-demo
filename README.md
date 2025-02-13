@@ -4,7 +4,9 @@
 
 ![](https://static.iiter.cn/article/9caac4214d11796eebb16e7ddd4bf2a2.png)
 
-基于 Express + DeepSeek_R1 的智能对话应用，支持流式响应和思维链展示
+基于 Express + DeepSeek_R1 的智能对话应用，支持流式响应和思维链展示  
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fisnl%2Fdeepseek-r1-demo)
 
 ## 功能特性
 
@@ -83,6 +85,16 @@ npm run dev
 2. 免费版 API 有速率限制，生产环境建议升级
 3. 前端使用原生 EventSource 实现，兼容现代浏览器
 4. 建议在反向代理后部署生产环境
+
+## Vercel 部署
+
+1. 点击上方的 "Deploy with Vercel" 按钮
+2. 关联你的 GitHub 仓库
+3. 在 Vercel 项目设置中配置以下环境变量:
+   - DEEPSEEK_API_KEY: 你的 DeepSeek API 密钥
+   - DEEPSEEK_BASE_URL: DeepSeek API 基础 URL
+   - DEEPSEEK_MODEL: 使用的模型名称
+4. 部署完成后即可访问
 
 ## 许可证
 MIT License
