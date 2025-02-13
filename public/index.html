@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 助手对话</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+
+        .assistant-message {
+            background-color: #e9ecef;
+            color: #333;
+        }
+
+        .input-container {
+            display: flex;
+            padding: 1rem;
+            background: #fff;
+            border-top: 1px solid #eee;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: none;
+            height: 60px;
+            margin-right: 1rem;
+            font-family: inherit;
+        }
+
+        button {
+            padding: 0 1.5rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 1rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        .reasoning-message {
+            background-color: #f8f9fa;
+            color: #666;
+            font-style: italic;
+            border-left: 3px solid #007bff;
+            margin-bottom: 0.5rem;
+        }
+
+        .final-answer {
+            background-color: #e9ecef;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .message-container {
+            margin-bottom: 1.5rem;
+        }
+
+        /* 添加 Markdown 样式 */
+        .markdown-content {
+            line-height: 1.6;
+        }
+        
+        .markdown-content code {
+            background-color: #f3f3f3;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .markdown-content pre {
+            background-color: #f3f3f3;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        
+        .markdown-content p {
+            margin-bottom: 1rem;
+        }
+        
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="typing-indicator" id="typingIndicator">AI 正在思考...</div>
+            <div class="input-container">
+                <textarea 
+                    id="userInput" 
+                    placeholder="请输入您的问题..."
+                    onkeydown="if(event.keyCode===13 && !event.shiftKey){event.preventDefault();sendMessage();}"
+                ></textarea>
+                <button onclick="sendMessage()" id="sendButton">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        function addMessage(content, type = 'user') {
+            const container = document.createElement('div');
+            container.className = 'message-container';
+            
+            const messageDiv = document.createElement('div');
+            
+            switch(type) {
+                case 'user':
+                    messageDiv.className = 'message user-message';
+                    messageDiv.textContent = content;
+                    break;
+                case 'reasoning':
+                    messageDiv.className = 'message reasoning-message';
+                    messageDiv.innerHTML = '<strong>思维链：</strong><br>' + content;
+                    break;
+                case 'answer':
+                    messageDiv.className = 'message final-answer markdown-content';
+                    messageDiv.innerHTML = '<strong>回答：</strong><br>' + marked.parse(content);
+                    break;
+            }
+            
+            container.appendChild(messageDiv);
+            chatMessages.appendChild(container);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return container;
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            
+            addMessage(message, 'user');
+            userInput.value = '';
+            typingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let reasoningText = '';
+                let answerText = '';
+                let reasoningContainer = null;
+                let answerContainer = null;
+
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    
+                    const text = decoder.decode(value);
+                    // 按换行符分割多个 JSON 对象
+                    const jsonLines = text.split('\n').filter(line => line.trim());
+                    
+                    for (const line of jsonLines) {
+                        try {
+                            const data = JSON.parse(line);
+                            
+                            if (data.type === 'reasoning') {
+                                if (!reasoningContainer) {
+                                    reasoningContainer = addMessage('', 'reasoning');
+                                }
+                                reasoningText += data.content;
+                                const reasoningDiv = reasoningContainer.querySelector('.reasoning-message');
+                                reasoningDiv.innerHTML = '<strong>思维链：</strong><br>' + reasoningText;
+                            } else if (data.type === 'text-delta') {
+                                if (!answerContainer) {
+                                    answerContainer = addMessage('', 'answer');
+                                }
+                                answerText += data.content;
+                                const answerDiv = answerContainer.querySelector('.final-answer');
+                                answerDiv.innerHTML = '<strong>回答：</strong><br>' + marked.parse(answerText);
+                            }
+                        } catch (e) {
+                            console.error('Parse error for line:', line, e);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('抱歉，发生了错误，请稍后重试。', 'answer');
+            } finally {
+                typingIndicator.style.display = 'none';
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                userInput.focus();
+            }
+        }
+    </script>
+</body>
+</html> 
